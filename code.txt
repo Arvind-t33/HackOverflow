@@ -1,0 +1,156 @@
+﻿#include <AFMotor.h>
+#include <Servo.h>
+#include <math.h>
+
+
+
+
+AF_DCMotor motor2(2, MOTOR12_64KHZ);// create motor #2 (right) and 1 (left), 64KHz pwm
+AF_DCMotor motor1(1, MOTOR12_64KHZ);
+int speed1 = 255;
+int k;
+
+
+int trigPin = 6;
+int echoPin = 10;
+double distanceCm;
+
+
+Servo servo1;
+double arr[12];
+int ang[12];
+int d = 0;
+
+
+int max1;
+int index;
+double largest;
+
+
+void setup() {
+  Serial.begin(9600);
+  // set up Serial library at 9600 bps
+  Serial.println("Motor test!");
+  //sonar
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
+  //motor
+  motor1.setSpeed(speed1);
+  motor2.setSpeed(speed1);// set the speed of motor to 200/255
+  
+  //servo
+  servo1.attach(9);
+}
+
+
+void loop() {
+  echo();
+  //Serial.println(distanceCm);
+  if (distanceCm>(double)1&&distanceCm <= (double)15)
+  {
+    while(true)
+    {
+    echo();
+    if(distanceCm > (double)20)
+    break;
+    motor2.run(BACKWARD);
+    motor1.run(BACKWARD);
+    }
+    echo();
+  }
+  if ((distanceCm <= (double)25) && (distanceCm > (double)15))
+  {
+    motor1.setSpeed(0);
+    motor2.setSpeed(0);
+    servo();
+    d = 0;
+    
+    for (int a = 0; a < 12; a++)
+    {
+      if(arr[a]>600)
+      arr[a]=0;
+     }
+    maximum(arr);
+    motor1.setSpeed(speed1);
+    motor2.setSpeed(speed1);
+    if (ang[index] > 90)
+    {
+      motor2.run(FORWARD);
+      motor1.run(BACKWARD);
+      Serial.println("LEFT");
+      k = ang[index] - 90;
+      delay(k * 6.5833); 
+    }
+    if (ang[index] < 90)
+    {
+      motor2.run(BACKWARD);
+      motor1.run(FORWARD);
+      Serial.println("RIGHT");
+      k = 90 - ang[index];
+      delay(k * 6.5833); 
+  }
+  }
+  else
+  {
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  }
+  }
+
+
+void echo()
+{
+  long duration;
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distanceCm = duration * 0.034 / 2;
+  delay(10);
+}
+
+
+void servo()
+{
+  int pos = 90;
+  //counter
+  d=0;
+  for (pos = 75; pos >= 0 ; pos-=15)
+  {
+    servo1.write(pos);
+    echo();
+    delay(225);
+    arr[d] = distanceCm;
+    ang[d] = pos;
+    d++;
+  }
+  
+  for (pos = 105; pos <= 180; pos+=15)
+  {
+    servo1.write(pos);
+    echo();
+    delay(225);
+    arr[d] = distanceCm;
+    ang[d] = pos;
+    d++;
+  }
+servo1.write(90);
+}
+ 
+int maximum(double arr[])
+{
+  int c;largest=0;
+  max1 = arr[0];
+  for (int i = 0; i < 12; i++)
+  {
+    if (largest < arr[i])
+    {
+      largest = arr[i];
+      index = i;
+    }
+   }
+   return(index);
+}
